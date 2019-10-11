@@ -1,13 +1,6 @@
 import React, { Component } from 'react';
 
 
-import {
-  Container,
-  Row,
-  Col
-} from "react-bootstrap";
-
-
 export default class WeatherCurrent extends Component {
 	constructor(props) {
     super(props);
@@ -18,23 +11,33 @@ export default class WeatherCurrent extends Component {
     };
   }
 
-  componentDidMount() {
-	  fetch('http://api.openweathermap.org/data/2.5/weather?q=London,uk&APPID=' + global.WEATHER_API_KEY)
-	  .then(res => res.json())
-	  .then(
-	  	(data) => {
-			  this.setState({ 
-				  isLoaded: true,
-				  weatherData: data
-				})
-	  	},
-		  (error) => {
-	      this.setState({
-	        isLoaded: true,
-	        error
-	      });
-	    }
-	  )
+  componentDidUpdate(prevProps, prevState, snapshot) {
+	  if(this.props.city !== prevProps.city) {
+		  this.fetchDataFromAPI(this.props.city);
+		}
+  }
+  
+  componentDidMount () {
+	  this.fetchDataFromAPI(this.props.city);
+  }
+  
+  fetchDataFromAPI (city) {
+	  fetch('http://api.openweathermap.org/data/2.5/weather?q='+ city +'&units=metric&APPID=' + global.WEATHER_API_KEY)
+		  .then(res => res.json())
+		  .then(
+		  	(data) => {
+				  this.setState({ 
+					  isLoaded: true,
+					  weatherData: data
+					})
+		  	},
+			  (error) => {
+		      this.setState({
+		        isLoaded: true,
+		        error
+		      });
+		    }
+		)
   }
 	
   render() {
@@ -47,7 +50,7 @@ export default class WeatherCurrent extends Component {
       return <div>Loading...</div>;
       
     } else {
-	    let currTemp = Math.round(convertKelvinToCelsius(weatherData.main.temp));
+	    let currTemp = Math.round(weatherData.main.temp);
 	    let currHumidity = weatherData.main.humidity;
 	    let currWindSpeed = weatherData.wind.speed;
 	    let currDesc = weatherData.weather[0].description;
@@ -63,12 +66,4 @@ export default class WeatherCurrent extends Component {
       );
     }
   }
-}
-
-function convertKelvinToCelsius(kelvin) {
-	if (kelvin < (0)) {
-		return 'below absolute zero (0 K)';
-	} else {
-		return (kelvin-273.15);
-	}
 }

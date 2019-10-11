@@ -1,8 +1,6 @@
 import React, { Component } from 'react';
 
-
 import {
-  Container,
   Row,
   Col,
   Card
@@ -19,24 +17,34 @@ export default class WeatherCurrent extends Component {
     };
   }
 
-  componentDidMount() {
-	  fetch('http://api.openweathermap.org/data/2.5/forecast?q=London,uk&APPID=' + global.WEATHER_API_KEY)
-	  .then(res => res.json())
-	  .then(
-	  	(data) => {
-		  	console.log(data);
-			  this.setState({ 
-				  isLoaded: true,
-				  weatherData: data
-				})
-	  	},
-		  (error) => {
-	      this.setState({
-	        isLoaded: true,
-	        error
-	      });
-	    }
-	  )
+  componentDidUpdate(prevProps, prevState, snapshot) {
+	  if(this.props.city !== prevProps.city) {
+		  this.fetchDataFromAPI(this.props.city);
+		}
+  }
+  
+  componentDidMount () {
+	  this.fetchDataFromAPI(this.props.city);
+  }
+  
+  
+  fetchDataFromAPI (city) {
+	  fetch('http://api.openweathermap.org/data/2.5/forecast?q='+ city +'&units=metric&APPID=' + global.WEATHER_API_KEY)
+		  .then(res => res.json())
+		  .then(
+		  	(data) => {
+				  this.setState({ 
+					  isLoaded: true,
+					  weatherData: data
+					})
+		  	},
+			  (error) => {
+		      this.setState({
+		        isLoaded: true,
+		        error
+		      });
+		    }
+		)
   }
 	
   render() {
@@ -49,13 +57,25 @@ export default class WeatherCurrent extends Component {
       return <div>Loading...</div>;
       
     } else {
-	    
+
       return (
-	      <Row>
-	      	{weatherData.list.map(item => (
-	          <WeatherItem key={item.dt} weatherRes={item}></WeatherItem>
-          ))}
-        </Row>
+	      <div className="pb-5">
+		      <h4 className="mt-5 mb-3">{"Five day forecast (as of 12:00:00)"}</h4>
+		      <Row>
+		      	{weatherData.list.map(item => {
+			      		let itemTime = item.dt_txt.split(' ')[1];
+			      		
+			      		if (itemTime === "12:00:00") {
+					      	return (
+				          	<WeatherItem key={item.dt} weatherRes={item}></WeatherItem>
+									)
+								} else {
+									return "";
+								}
+							}
+						)}
+	        </Row>
+        </div>
       );
     }
   }
@@ -64,18 +84,20 @@ export default class WeatherCurrent extends Component {
 
 class WeatherItem extends Component {
 	render () {
-		let temp = Math.round(convertKelvinToCelsius(this.props.weatherRes.main.temp));
+		let temp = Math.round(this.props.weatherRes.main.temp);
 		
 		let dateTime = this.props.weatherRes.dt_txt;
-		let dateOnly = dateTime.slice().split(' ')[0];
+		let dateOnly = dateTime.split(' ')[0];
 		let currDate = getCurrDate();
+		let iconUrl = "http://openweathermap.org/img/wn/" + this.props.weatherRes.weather[0].icon +"@2x.png";
 		
-		if (dateOnly == currDate) {
+		if (dateOnly === currDate) {
 			return "";
 		} else {
 			return (
 				<Col>
-					<Card className="mb-3">
+					<Card className="mb-3 text-center">
+						<Card.Img variant="top" src={iconUrl} style={{width: 50, margin: "0 auto"}} />
 						<Card.Body>
 							<Card.Title>{dateOnly}</Card.Title>
 							<Card.Text>
@@ -89,7 +111,7 @@ class WeatherItem extends Component {
 	}
 }
 
-
+// Helper functions
 var getCurrDate = function() {
 	let today = new Date();
 	let dd = today.getDate();
@@ -102,10 +124,3 @@ var getCurrDate = function() {
 	return (yyyy+'-'+mm+'-'+dd);
 };
 
-function convertKelvinToCelsius(kelvin) {
-	if (kelvin < (0)) {
-		return 'below absolute zero (0 K)';
-	} else {
-		return (kelvin-273.15);
-	}
-}
